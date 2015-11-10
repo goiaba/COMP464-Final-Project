@@ -54,8 +54,7 @@ struct timezone tz;
 
 void RSA_generateKeys();
 int  RSA_checkKeys();
-void RSA_encrypt();
-void RSA_decrypt();
+void RSA_decrypt(char* file);
 
 
 /* Initialization related routines */
@@ -77,8 +76,13 @@ inline void encrypt(char*,FILE*);
 
 
 /* Main subroutine */
-int main()
-{
+int main(int argc, char* argv[]) {
+
+    if (argc != 2) {
+        fprintf(stderr, "Wrong number of arguments. Please provide the file to be decrypted.\n\n");
+        exit(1);
+    }
+
     /* Initialize the GMP integers first */
     initializeGMP();
 
@@ -93,33 +97,7 @@ int main()
         RSA_generateKeys();
     }
 
-    /* Show menu */
-    int choice = -1;
-
-    while(choice!=3)
-    {
-        printf("\n\n");
-
-        printf("\n1. Encrypt... ");
-        printf("\n2. Decrypt... ");
-        printf("\n3. Quit... ");
-
-        printf("\n\nEnter your choice (1-3) : ");
-        scanf("%d",&choice);
-
-        switch(choice)
-        {
-            case 1  :   RSA_encrypt();
-                        break;
-
-            case 2  :   RSA_decrypt();
-                        break;
-
-            case 3  :   return(0);
-
-            default :   printf("\nUndefined choice.");
-        }
-    }
+    RSA_decrypt(argv[1]);
 
     /* Clear the GMP integers */
     clearGMP();
@@ -215,9 +193,9 @@ int RSA_checkKeys()
     }
 
 
-    printf("\nUsing RSA Key Files : \n\n");
+    printf("\nUsing RSA Key Files : \n");
     printf("\nPublic Key File  : %s",publicFile);
-    printf("\nPrivate Key File : %s",privateFile);
+    printf("\nPrivate Key File : %s\n",privateFile);
 
     char d_str[1000];
     char e_str[100];
@@ -448,193 +426,6 @@ void RSA_generateKeys()
 
 
 
-void RSA_encrypt()
-{
-    /* The RSA Encryption routine */
-
-
-    printf("RSA Encryption :\n\n");
-
-    char pubkeyfile[200];   /* file containing public key */
-    char infile[200];    /* filename to encrypt */
-    char outfile[200];    /* filename to decrypt */
-    FILE *fin,*fout;    /* file pointers */
-    FILE *fpublic;        /* file pointer to public keyfile */
-
-    int num;        /* number of characters
-                   to encrypt together */
-
-    int i;            /* string index */
-    char chread;        /* character read */
-    char stread[1000];    /* string read */
-
-    char e_str[100],n_str[1000];
-
-    /* Get public keys of recipient */
-    printf("\nEnter file containing public key of recipient");
-    printf("\nType '.' to use your own public key : ");
-
-    strcpy(pubkeyfile,"");
-    scanf("%s",pubkeyfile);
-
-    if(strcmp(pubkeyfile,"."))
-    {
-        fpublic = fopen(pubkeyfile,"r");
-
-        if(!fpublic)
-        {
-            fprintf(stderr,"FATAL: Could not read %s!",pubkeyfile);
-            return;
-        }
-
-        fscanf(fpublic,"%s\n",e_str);
-        fscanf(fpublic,"%s\n",n_str);
-
-        mpz_set_str(e,e_str,10);
-        mpz_set_str(n,n_str,10);
-
-    }
-    else
-        printf("\nWARNING : Encrypting using your own public key!\n");
-
-    printf("\nEnter filename to encrypt :");
-    scanf("%s",infile);
-
-    fin = fopen(infile,"r");
-
-    if(!fin)
-    {
-        fprintf(stderr,"FATAL : Could not open %s for reading",infile);
-        return;
-    }
-
-    printf("Enter filename to encrypt to :");
-    scanf("%s",outfile);
-
-    fout = fopen(outfile,"w");
-
-    if(!fout)
-    {
-        fprintf(stderr,"FATAL : Could not open %s for writing",outfile);
-        return;
-    }
-
-    printf("Enter number of characters to encrypt together :");
-    scanf("%d",&num);
-
-    if(num<1 || num>100)
-    {
-        /* safest numbers are in the range 1-100 for 1024 bit RSA */
-
-        if(num<1)
-        {
-            fprintf(stderr,"Invalid input!");
-            return;
-        }
-        else
-            fprintf(stderr,"WARNING : Possibly out of range!");
-    }
-
-
-    /* Get time before encryption */
-    if(gettimeofday(&tv1,&tz)!=0)
-        fprintf(stderr,"\nWARNING : could not gettimeofday() !");
-
-
-    i = 0;
-    chread = 'a';
-
-    do
-    {
-
-        chread = fgetc(fin);
-
-        if(chread==EOF)
-        {
-            if(i!=0)
-            {
-                stread[i] = '\0';
-                encrypt(stread,fout);
-            }
-        }
-        else if(i==num-1)
-        {
-            stread[i] = chread;
-            stread[i+1] = '\0';
-            encrypt(stread,fout);
-            i = 0;
-
-        }
-        else
-        {
-            stread[i] = chread;
-            i++;
-        }
-
-    }while(chread!=EOF);
-
-    /* Get time after encryption */
-    if(gettimeofday(&tv2,&tz)!=0)
-        printf("\nWarning : could not gettimeofday() !");
-
-    timediff(&tv2,&tv1,&tvdiff);
-
-    printf("\nEncryption took...\n");
-
-    printf("\n%-15s : %ld","Seconds",tvdiff.tv_sec);
-    printf("\n%-15s : %ld","Microseconds",tvdiff.tv_usec);
-
-    fclose(fin);
-    fclose(fout);
-}
-
-
-
-inline void encrypt(char* msg,FILE* fout)
-{
-    /* This function actually does the encrypting of each message */
-
-    unsigned int i;
-    int tmp;
-    char tmps[4];
-    char* intmsg = new char[strlen(msg)*3 + 1];
-
-
-    /* Here, (mpz_t) M is the messsage in gmp integer 
-    *  and (mpz_t) c is the cipher in gmp integer */
-
-    char ciphertext[1000];
-
-    strcpy(intmsg,"");
-
-    for(i=0;i<strlen(msg);i++)
-    {
-        tmp = (int)msg[i];
-
-        /* print it in a 3 character wide format */
-        sprintf(tmps,"%03d",tmp);
-
-        strcat(intmsg,tmps);
-    }
-
-    mpz_set_str(M,intmsg,10);
-
-    /* free memory claimed by intmsg */
-    delete [] intmsg;
-
-    /* c = M^e(mod n) */
-    mpz_powm(c,M,e,n);
-
-    /* get the string representation of the cipher */
-    mpz_get_str(ciphertext,10,c);
-
-    /* write the ciphertext to the output file */
-    fprintf(fout,"%s\n",ciphertext);
-}
-
-
-
-
 void populateArray(const char * filename, char ** &ciphertextArray, int &ciphertextArraySize) {
     FILE* fp;
 
@@ -672,21 +463,15 @@ void freeArray(char ** &ciphertextArray, int &ciphertextArraySize) {
 
 
 
-void RSA_decrypt()
-{
+void RSA_decrypt(char* file) {
     /* The RSA decryption routine */
 
-    printf("RSA Decryption:\n\n");
-
-    char file[200];        /* filename of file to decrypt */
+    printf("\nRSA Decryption:\n\n");
 
     /* Here, (mpz_t) c is the cipher in gmp integer  
     *  and (mpz_t) M is the message in gmp integer */
 
     char decrypted[1000];    /* decypted text */
-
-    printf("Enter name of file to decrypt :");
-    scanf("%s",file);
 
     int ciphertextArraySize = 0;
     char ** ciphertextArray = NULL;
@@ -744,7 +529,7 @@ void RSA_decrypt()
 
     printf("\nDecryption took... (including output)\n");
     printf("\n%-15s : %ld","Seconds",tvdiff.tv_sec);
-    printf("\n%-15s : %ld","Microseconds",tvdiff.tv_usec);
+    printf("\n%-15s : %ld\n\n","Microseconds",tvdiff.tv_usec);
 }
 
 void process(char** &decryptedTextArray, int decryptedTextArraySize) {
