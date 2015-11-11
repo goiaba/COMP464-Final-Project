@@ -453,11 +453,11 @@ void populateArray(const char * filename, char ** &ciphertextArray, int &ciphert
 
 
 
-void freeArray(char ** &ciphertextArray, int &ciphertextArraySize) {
-    for (int index = 0; index < ciphertextArraySize; index++) {
-        free(ciphertextArray[index]);
+void freeArray(char ** &array, int &size) {
+    for (int index = 0; index < size; index++) {
+        free(array[index]);
     }
-    free(ciphertextArray);
+    free(array);
 }
 
 
@@ -520,6 +520,11 @@ void RSA_decrypt(char* file) {
     for (int index = 0; index < ciphertextArraySize; index++) {
         printf("%s", decryptedTextArray[index]);
     }
+
+    /*
+     * Dealocate memory that is not used anymore.
+     */
+    freeArray(decryptedTextArray, ciphertextArraySize);
 
     /* Get time after decription */
     if(gettimeofday(&tv2,&tz)!=0)
