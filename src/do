@@ -1,0 +1,2 @@
+# Compiling
+icpc -O3 rsa_modified.cpp -I. -lrt -L ./gmp-6.1.0/ -lgmp -fopenmp -o rsa.exec
