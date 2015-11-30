@@ -40,7 +40,7 @@
 /* Declare global variables */
 
 mpz_t d,e,n;
-mpz_t M,c;
+//mpz_t M,c;
 
 
 /* Declare time-related variables */
@@ -115,8 +115,8 @@ void initializeGMP()
     mpz_init(e);
     mpz_init(n);
 
-    mpz_init(M);
-    mpz_init(c);
+//    mpz_init(M);
+//    mpz_init(c);
 }
 
 
@@ -129,8 +129,8 @@ void clearGMP()
     mpz_clear(e);
     mpz_clear(n);
 
-    mpz_clear(M);
-    mpz_clear(c);
+//    mpz_clear(M);
+//    mpz_clear(c);
 }
 
 
@@ -471,7 +471,7 @@ void RSA_decrypt(char* file) {
     /* Here, (mpz_t) c is the cipher in gmp integer  
     *  and (mpz_t) M is the message in gmp integer */
 
-    char decrypted[1000];    /* decypted text */
+//    char decrypted[1000];    /* decypted text */
 
     int ciphertextArraySize = 0;
     char ** ciphertextArray = NULL;
@@ -489,21 +489,33 @@ void RSA_decrypt(char* file) {
      */
     decryptedTextArray = (char **) malloc(ciphertextArraySize * sizeof(char *));
 
+    printf("Number of available threads: %d\n", omp_get_max_threads());
+    mpz_t *M = (mpz_t*) malloc(omp_get_max_threads() * sizeof(mpz_t));
+    mpz_t *c = (mpz_t*) malloc(omp_get_max_threads() * sizeof(mpz_t));
+    for(int i = 0; i < omp_get_max_threads(); i++){
+        mpz_init(M[i]);
+        mpz_init(c[i]);
+    }
+    char **decrypted = (char**) malloc(omp_get_max_threads() * sizeof(char*));
+    for(int i = 0; i < omp_get_max_threads(); i++)
+        decrypted[i] = (char*) malloc(1000 * sizeof(char));
+
     /* Get time before decryption */
     if(gettimeofday(&tv1,&tz)!=0)
         printf("\nWarning : could not gettimeofday() !");
 
     #pragma omp parallel for
     for (int index = 0; index < ciphertextArraySize; index++) {
-        mpz_set_str(c,ciphertextArray[index],10);
+        int tindex = omp_get_thread_num();
+        mpz_set_str(c[tindex],ciphertextArray[index],10);
 
         /* M = c^d(mod n) */
-        mpz_powm(M,c,d,n);
+        mpz_powm(M[tindex],c[tindex],d,n);
 
-        mpz_get_str(decrypted,10,M);
+        mpz_get_str(decrypted[tindex],10,M[tindex]);
     
-        decryptedTextArray[index] = (char*) calloc(sizeof(char), strlen(decrypted) + 1);
-        strcpy(decryptedTextArray[index], decrypted);
+        decryptedTextArray[index] = (char*) calloc(sizeof(char), 1000 + 1);
+        strcpy(decryptedTextArray[index], decrypted[tindex]);
     }
 
     /*
