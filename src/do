@@ -1,2 +1,8 @@
-# Compiling
-icpc -O3 rsa_modified.cpp -I. -lrt -L ./gmp-6.1.0/ -lgmp -fopenmp -o rsa.exec
+# Compiling 1st version (not parallel)
+# icpc -O3 -lgmp rsa.cpp -o rsa
+
+# Compiling 2nd version (OpenMP)
+# icpc -O3 -lgmp -fopenmp rsa.cpp -o rsa
+
+# Compiling 3rd version (OpenMP + MPI)
+mpicc -O3 -lgmp -fopenmp rsa.cpp -o rsa

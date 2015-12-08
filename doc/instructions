@@ -1,3 +1,6 @@
-- This program uses the library GMP version 6.1. In order to compile it, download and extract the library to the src folder:
-wget https://gmplib.org/download/gmp/gmp-6.1.0.tar.bz2
-tar -xjvf gmp-6.1.0.tar.bz2 
+- Compiling
+Script do, inside folder src
+
+- Running
+OMP_NUM_THREADS=8 ibrun tacc_affinity ./rsa <encrypt/decrypt> <input_file>
+* Make sure you're on a dedicated node with all processors you need
