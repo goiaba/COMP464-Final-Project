@@ -537,6 +537,7 @@ void RSA_decrypt(char *infile)
 	// Copying processed data from lines to full text
 	for(int i = 0; i < myLines; i++)
 		memcpy(&processedText[i*CYPHER_BLOCK_SIZE], processedLines[i], CYPHER_BLOCK_SIZE);
+	processedText[myLines * CYPHER_BLOCK_SIZE] = 0;
 
 	int *displacements = talloc(int, numProcs);
 	int *recvCounts = talloc(int, numProcs);
